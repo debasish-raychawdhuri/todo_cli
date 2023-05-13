@@ -1,6 +1,7 @@
+use crate::schema::todos;
 use diesel::prelude::*;
 
-#[derive(Queryable)]
+#[derive(Queryable, Insertable)]
 pub struct Todo {
     pub id: String,
     pub description: String,
