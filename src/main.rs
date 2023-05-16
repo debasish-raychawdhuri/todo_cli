@@ -1,37 +1,14 @@
+mod control;
 mod models;
+mod repl;
 mod schema;
-use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use dotenvy::dotenv;
-use models::Todo;
-use schema::todos;
+use repl::repl_loop;
 use std::env;
 
 fn main() {
-    let mut connection = establish_connection();
-    let results = todos::table
-        .filter(todos::completed.eq(false))
-        .load::<models::Todo>(&mut connection)
-        .expect("Error loading todos");
-    for todo in results {
-        println!("{}", todo.description);
-        println!("{}", todo.completed);
-    }
-    let new_todo = Todo {
-        id: String::from("1"),
-        description: String::from("Learn Rust, learn fast"),
-        completed: false,
-    };
-    diesel::insert_into(todos::table)
-        .values(&new_todo)
-        .on_conflict(todos::id)
-        .do_update()
-        .set((
-            todos::completed.eq(true),
-            todos::description.eq(&new_todo.description),
-        ))
-        .execute(&mut connection)
-        .expect("Error saving new todo");
+    repl_loop();
 }
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();
