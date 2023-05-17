@@ -3,27 +3,30 @@ use std::error::Error;
 use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
 
 use crate::{
-    models::{NewTodo, NewUser, User},
+    models::{NewTodo, NewUser, Todo, User},
     schema,
 };
 
 fn create_new_user<'a>(
     conn: &mut PgConnection,
+    user_id: i32,
     username: &'a str,
     password: &'a str,
 ) -> Result<User, Box<dyn Error>> {
     use schema::users;
 
     let new_user = NewUser { username, password };
-
+    if user_id != 1 {
+        return Err("You are not allowed to create a user with id 1".into());
+    }
     Ok(diesel::insert_into(users::table)
         .values(&new_user)
-        .get_result(conn)
-        .expect("Error saving new user"))
+        .get_result(conn)?)
 }
 
 fn change_user_password<'a>(
     conn: &mut PgConnection,
+    user_id: i32,
     username: &'a str,
     password: &'a str,
 ) -> Result<User, Box<dyn Error>> {
@@ -31,8 +34,8 @@ fn change_user_password<'a>(
 
     let user = users::dsl::users
         .filter(users::dsl::username.eq(username))
-        .first::<User>(conn)
-        .expect("Error loading user");
+        .filter(users::dsl::id.eq(user_id))
+        .first::<User>(conn)?;
 
     Ok(diesel::update(users::dsl::users.find(user.id))
         .set(users::dsl::password.eq(password))
@@ -42,9 +45,9 @@ fn change_user_password<'a>(
 
 fn create_new_todo<'a>(
     conn: &mut PgConnection,
-    description: &'a str,
     user_id: i32,
-) -> Result<(), Box<dyn Error>> {
+    description: &'a str,
+) -> Result<Todo, Box<dyn Error>> {
     use schema::todos;
 
     let new_todo = NewTodo {
@@ -52,12 +55,11 @@ fn create_new_todo<'a>(
         user_id,
     };
 
-    diesel::insert_into(todos::table)
+    let new_todo = diesel::insert_into(todos::table)
         .values(&new_todo)
-        .execute(conn)
-        .expect("Error saving new todo");
+        .get_result(conn)?;
 
-    Ok(())
+    Ok(new_todo)
 }
 
 fn get_all_pending_todos_for_user<'a>(
@@ -69,27 +71,51 @@ fn get_all_pending_todos_for_user<'a>(
     let results = todos::dsl::todos
         .filter(todos::dsl::user_id.eq(user_id))
         .filter(todos::dsl::completed.eq(false))
-        .load::<crate::models::Todo>(conn)
-        .expect("Error loading todos");
+        .load::<crate::models::Todo>(conn)?;
+
+    Ok(results)
+}
+
+fn get_all_todos_for_user<'a>(
+    conn: &mut PgConnection,
+    user_id: i32,
+) -> Result<Vec<crate::models::Todo>, Box<dyn Error>> {
+    use schema::todos;
+
+    let results = todos::dsl::todos
+        .filter(todos::dsl::user_id.eq(user_id))
+        .load::<crate::models::Todo>(conn)?;
 
     Ok(results)
 }
 
 fn update_todo<'a>(
     conn: &mut PgConnection,
+    user_id: i32,
     id: i32,
     description: &'a str,
-    completed: bool,
 ) -> Result<(), Box<dyn Error>> {
     use schema::todos;
 
     diesel::update(todos::dsl::todos.find(id))
-        .set((
-            todos::dsl::description.eq(description),
-            todos::dsl::completed.eq(completed),
-        ))
-        .execute(conn)
-        .expect("Error saving todo");
+        .set((todos::dsl::description.eq(description),))
+        .filter(todos::dsl::user_id.eq(user_id))
+        .execute(conn)?;
+
+    Ok(())
+}
+
+fn mark_todo_done<'a>(
+    conn: &mut PgConnection,
+    user_id: i32,
+    id: i32,
+) -> Result<(), Box<dyn Error>> {
+    use schema::todos;
+
+    diesel::update(todos::dsl::todos.find(id))
+        .set(todos::dsl::completed.eq(true))
+        .filter(todos::dsl::user_id.eq(user_id))
+        .execute(conn)?;
 
     Ok(())
 }

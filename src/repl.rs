@@ -100,7 +100,7 @@ fn read_command_line() -> String {
     command_line.trim().to_string()
 }
 
-pub fn repl_loop() {
+pub fn repl_loop(user_id: i32) {
     loop {
         let command_line = read_command_line();
         let command = read_parse_repl_command(&command_line);
