@@ -1,7 +1,13 @@
 //create a REPL for todo management
 
+use crate::control::{
+    create_new_todo, create_new_user, get_all_todos_for_user, mark_todo_done,
+    search_todo_by_description, update_todo,
+};
+use diesel::PgConnection;
 use rpassword::read_password;
 use std::error::Error;
+
 #[derive(Debug)]
 enum ReplCommand<'a> {
     CreateUser(&'a str, &'a str),
@@ -100,38 +106,55 @@ fn read_command_line() -> String {
     command_line.trim().to_string()
 }
 
-pub fn repl_loop(user_id: i32) {
+pub fn repl_loop(user_id: i32, conn: &mut PgConnection) {
     loop {
         let command_line = read_command_line();
         let command = read_parse_repl_command(&command_line);
         match command {
             Ok(ReplCommand::CreateUser(username, password)) => {
-                println!("Creating user {} with password {}", username, password);
+                match create_new_user(conn, user_id, username, password) {
+                    Ok(user) => println!("User with id {} created successfully", user.id),
+                    Err(e) => println!("Error: {}", e),
+                }
             }
-            Ok(ReplCommand::ChangePassword(username, old_password, new_password)) => {
-                println!(
-                    "Changing password for user {} from {} to {}",
-                    username, old_password, new_password
-                );
-            }
+            Ok(ReplCommand::ChangePassword(username, old_password, new_password)) => {}
             Ok(ReplCommand::CreateTodo(description)) => {
-                println!("Creating todo with description {}", description);
+                match create_new_todo(conn, user_id, description) {
+                    Ok(todo) => println!("Todo with id {} created successfully", todo.id),
+                    Err(e) => println!("Error: {}", e),
+                }
             }
             Ok(ReplCommand::SearchTodo(description)) => {
-                println!("Searching todo with description {}", description);
+                match search_todo_by_description(conn, user_id, description) {
+                    Ok(todos) => {
+                        println!("Found {} todos", todos.len());
+                        for todo in todos {
+                            println!("{}: {}", todo.id, todo.description);
+                        }
+                    }
+                    Err(e) => println!("Error: {}", e),
+                }
             }
             Ok(ReplCommand::EditTodo(id, description)) => {
-                println!("Editing todo {} with description {}", id, description);
+                match update_todo(conn, user_id, id, description) {
+                    Ok(()) => println!("Todo edited successfully"),
+                    Err(e) => println!("Error: {}", e),
+                }
             }
-            Ok(ReplCommand::DeleteTodo(id)) => {
-                println!("Deleting todo {}", id);
-            }
-            Ok(ReplCommand::MarkTodoAsDone(id)) => {
-                println!("Marking todo {} as done", id);
-            }
-            Ok(ReplCommand::ListAllTodos) => {
-                println!("Listing all todos");
-            }
+            Ok(ReplCommand::DeleteTodo(id)) => {}
+            Ok(ReplCommand::MarkTodoAsDone(id)) => match mark_todo_done(conn, user_id, id) {
+                Ok(()) => println!("Todo marked as done successfully"),
+                Err(e) => println!("Error: {}", e),
+            },
+            Ok(ReplCommand::ListAllTodos) => match get_all_todos_for_user(conn, user_id) {
+                Ok(todos) => {
+                    println!("Found {} todos", todos.len());
+                    for todo in todos {
+                        println!("{}: {}", todo.id, todo.description);
+                    }
+                }
+                Err(e) => println!("Error: {}", e),
+            },
             Ok(ReplCommand::Exit) => {
                 println!("Exiting");
                 return;

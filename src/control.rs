@@ -1,13 +1,13 @@
 use std::error::Error;
 
-use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
+use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl, TextExpressionMethods};
 
 use crate::{
     models::{NewTodo, NewUser, Todo, User},
     schema,
 };
 
-fn create_new_user<'a>(
+pub fn create_new_user<'a>(
     conn: &mut PgConnection,
     user_id: i32,
     username: &'a str,
@@ -24,7 +24,7 @@ fn create_new_user<'a>(
         .get_result(conn)?)
 }
 
-fn change_user_password<'a>(
+pub fn change_user_password<'a>(
     conn: &mut PgConnection,
     user_id: i32,
     username: &'a str,
@@ -43,7 +43,7 @@ fn change_user_password<'a>(
         .expect("Error saving password"))
 }
 
-fn create_new_todo<'a>(
+pub fn create_new_todo<'a>(
     conn: &mut PgConnection,
     user_id: i32,
     description: &'a str,
@@ -62,7 +62,7 @@ fn create_new_todo<'a>(
     Ok(new_todo)
 }
 
-fn get_all_pending_todos_for_user<'a>(
+pub fn get_all_pending_todos_for_user<'a>(
     conn: &mut PgConnection,
     user_id: i32,
 ) -> Result<Vec<crate::models::Todo>, Box<dyn Error>> {
@@ -76,7 +76,7 @@ fn get_all_pending_todos_for_user<'a>(
     Ok(results)
 }
 
-fn get_all_todos_for_user<'a>(
+pub fn get_all_todos_for_user<'a>(
     conn: &mut PgConnection,
     user_id: i32,
 ) -> Result<Vec<crate::models::Todo>, Box<dyn Error>> {
@@ -89,7 +89,7 @@ fn get_all_todos_for_user<'a>(
     Ok(results)
 }
 
-fn update_todo<'a>(
+pub fn update_todo<'a>(
     conn: &mut PgConnection,
     user_id: i32,
     id: i32,
@@ -105,7 +105,22 @@ fn update_todo<'a>(
     Ok(())
 }
 
-fn mark_todo_done<'a>(
+pub fn search_todo_by_description(
+    conn: &mut PgConnection,
+    user_id: i32,
+    description: &str,
+) -> Result<Vec<crate::models::Todo>, Box<dyn Error>> {
+    use schema::todos;
+
+    let results = todos::dsl::todos
+        .filter(todos::dsl::user_id.eq(user_id))
+        .filter(todos::dsl::description.like(format!("%{}%", description)))
+        .load::<crate::models::Todo>(conn)?;
+
+    Ok(results)
+}
+
+pub fn mark_todo_done<'a>(
     conn: &mut PgConnection,
     user_id: i32,
     id: i32,

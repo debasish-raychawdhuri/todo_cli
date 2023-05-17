@@ -8,7 +8,7 @@ use repl::repl_loop;
 use std::env;
 
 fn main() {
-    repl_loop(1);
+    repl_loop(1, &mut establish_connection());
 }
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();
