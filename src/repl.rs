@@ -6,7 +6,7 @@ use crate::control::{
 };
 use diesel::PgConnection;
 use rpassword::read_password;
-use std::error::Error;
+use std::{error::Error, io::Write};
 
 #[derive(Debug)]
 enum ReplCommand<'a> {
@@ -18,6 +18,7 @@ enum ReplCommand<'a> {
     DeleteTodo(i32),
     MarkTodoAsDone(i32),
     ListAllTodos,
+    Help,
     Exit,
 }
 
@@ -99,6 +100,7 @@ impl<'a> Iterator for TokenIterator<'a> {
 
 fn read_command_line() -> String {
     print!("> ");
+    std::io::stdout().flush().expect("Failed to flush stdout");
     let mut command_line = String::new();
     std::io::stdin()
         .read_line(&mut command_line)
@@ -129,7 +131,7 @@ pub fn repl_loop(user_id: i32, conn: &mut PgConnection) {
                     Ok(todos) => {
                         println!("Found {} todos", todos.len());
                         for todo in todos {
-                            println!("{}: {}", todo.id, todo.description);
+                            println!("{}", todo);
                         }
                     }
                     Err(e) => println!("Error: {}", e),
@@ -150,7 +152,7 @@ pub fn repl_loop(user_id: i32, conn: &mut PgConnection) {
                 Ok(todos) => {
                     println!("Found {} todos", todos.len());
                     for todo in todos {
-                        println!("{}: {}", todo.id, todo.description);
+                        println!("{} ", todo);
                     }
                 }
                 Err(e) => println!("Error: {}", e),
@@ -158,6 +160,27 @@ pub fn repl_loop(user_id: i32, conn: &mut PgConnection) {
             Ok(ReplCommand::Exit) => {
                 println!("Exiting");
                 return;
+            }
+            Ok(ReplCommand::Help) => {
+                println!("Commands:");
+                println!("create-user <username> <password>");
+                println!("cu <username> <password>");
+                println!("change-password <username> <old-password> <new-password>");
+                println!("cp <username> <old-password> <new-password>");
+                println!("create-todo <description>");
+                println!("ct <description>");
+                println!("search-todo <description>");
+                println!("st <description>");
+                println!("edit-todo <id> <description>");
+                println!("et <id> <description>");
+                println!("delete-todo <id>");
+                println!("dt <id>");
+                println!("mark-todo-as-done <id>");
+                println!("md <id>");
+                println!("list-all-todos");
+                println!("lt");
+                println!("help");
+                println!("exit");
             }
             Err(e) => {
                 println!("Error: {}", e);
@@ -217,7 +240,7 @@ fn read_parse_repl_command<'a>(command: &'a str) -> Result<ReplCommand<'a>, Box<
         }
         let id = args[0].parse::<i32>()?;
         Ok(ReplCommand::DeleteTodo(id))
-    } else if command == "mark-todo-as-done" || command == "md" {
+    } else if command == "mark-todo-as-done" || command == "mt" {
         if args.len() != 1 {
             return Err("mark-todo-as-done command takes 1 argument".into());
         }
@@ -233,6 +256,11 @@ fn read_parse_repl_command<'a>(command: &'a str) -> Result<ReplCommand<'a>, Box<
             return Err("exit command takes 0 argument".into());
         }
         Ok(ReplCommand::Exit)
+    } else if command == "help" {
+        if args.len() != 0 {
+            return Err("help command takes 0 argument".into());
+        }
+        Ok(ReplCommand::Help)
     } else {
         Err("Unknown command".into())
     }
