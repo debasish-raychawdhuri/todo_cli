@@ -1,6 +1,9 @@
 use std::error::Error;
 
-use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl, TextExpressionMethods};
+use diesel::{
+    BoolExpressionMethods, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl,
+    TextExpressionMethods,
+};
 
 use crate::{
     models::{NewTodo, NewUser, Todo, User},
@@ -27,20 +30,21 @@ pub fn create_new_user<'a>(
 pub fn change_user_password<'a>(
     conn: &mut PgConnection,
     user_id: i32,
-    username: &'a str,
-    password: &'a str,
-) -> Result<User, Box<dyn Error>> {
+    old_password: &'a str,
+    new_password: &'a str,
+) -> Result<(), Box<dyn Error>> {
     use schema::users;
 
     let user = users::dsl::users
-        .filter(users::dsl::username.eq(username))
+        .filter(users::dsl::password.eq(old_password))
         .filter(users::dsl::id.eq(user_id))
         .first::<User>(conn)?;
 
-    Ok(diesel::update(users::dsl::users.find(user.id))
-        .set(users::dsl::password.eq(password))
-        .get_result(conn)
-        .expect("Error saving password"))
+    diesel::update(users::dsl::users.find(user.id))
+        .set(users::dsl::password.eq(new_password))
+        .filter(users::dsl::id.eq(user_id).or(users::dsl::id.eq(1)))
+        .execute(conn)?;
+    Ok(())
 }
 
 pub fn create_new_todo<'a>(
@@ -60,6 +64,29 @@ pub fn create_new_todo<'a>(
         .get_result(conn)?;
 
     Ok(new_todo)
+}
+
+pub fn get_username_for_user_id(
+    conn: &mut PgConnection,
+    user_id: i32,
+) -> Result<String, Box<dyn Error>> {
+    use schema::users;
+
+    let user = users::dsl::users
+        .filter(users::dsl::id.eq(user_id))
+        .first::<User>(conn)?;
+
+    Ok(user.username)
+}
+
+pub fn delete_todo(conn: &mut PgConnection, user_id: i32, id: i32) -> Result<(), Box<dyn Error>> {
+    use schema::todos;
+
+    diesel::delete(todos::dsl::todos.find(id))
+        .filter(todos::dsl::user_id.eq(user_id))
+        .execute(conn)?;
+
+    Ok(())
 }
 
 pub fn get_all_pending_todos_for_user<'a>(

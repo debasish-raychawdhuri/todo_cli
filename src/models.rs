@@ -20,7 +20,7 @@ impl Display for Todo {
 }
 
 #[derive(Insertable)]
-#[table_name = "todos"]
+#[diesel(table_name = todos)]
 pub struct NewTodo<'a> {
     pub description: &'a str,
     pub user_id: i32,
@@ -34,7 +34,7 @@ pub struct User {
 }
 
 #[derive(Insertable)]
-#[table_name = "users"]
+#[diesel(table_name = users)]
 pub struct NewUser<'a> {
     pub username: &'a str,
     pub password: &'a str,
