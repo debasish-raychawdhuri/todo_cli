@@ -100,11 +100,14 @@ pub fn authenticate_user(
 pub fn delete_todo(conn: &mut PgConnection, user_id: i32, id: i32) -> Result<(), Box<dyn Error>> {
     use schema::todos;
 
-    diesel::delete(todos::dsl::todos.find(id))
+    let result = diesel::delete(todos::dsl::todos.find(id))
         .filter(todos::dsl::user_id.eq(user_id))
-        .execute(conn)?;
+        .get_result::<Todo>(conn);
 
-    Ok(())
+    match result {
+        Ok(_) => Ok(()),
+        Err(_) => Err("Todo not found".into()),
+    }
 }
 
 pub fn get_all_pending_todos_for_user<'a>(
@@ -142,12 +145,15 @@ pub fn update_todo<'a>(
 ) -> Result<(), Box<dyn Error>> {
     use schema::todos;
 
-    diesel::update(todos::dsl::todos.find(id))
-        .set((todos::dsl::description.eq(description),))
+    let result = diesel::update(todos::dsl::todos.find(id))
+        .set(todos::dsl::description.eq(description))
         .filter(todos::dsl::user_id.eq(user_id))
-        .execute(conn)?;
+        .get_result::<Todo>(conn);
 
-    Ok(())
+    match result {
+        Ok(_) => Ok(()),
+        Err(_) => Err("Todo not found".into()),
+    }
 }
 
 pub fn search_todo_by_description(
@@ -172,10 +178,13 @@ pub fn mark_todo_done<'a>(
 ) -> Result<(), Box<dyn Error>> {
     use schema::todos;
 
-    diesel::update(todos::dsl::todos.find(id))
+    let result = diesel::update(todos::dsl::todos.find(id))
         .set(todos::dsl::completed.eq(true))
         .filter(todos::dsl::user_id.eq(user_id))
-        .execute(conn)?;
+        .get_result::<Todo>(conn);
 
-    Ok(())
+    match result {
+        Ok(_) => Ok(()),
+        Err(_) => Err("Todo not found".into()),
+    }
 }
