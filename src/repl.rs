@@ -100,6 +100,37 @@ impl<'a> Iterator for TokenIterator<'a> {
     }
 }
 
+pub fn login(connection: &mut PgConnection) -> Result<(), Box<dyn Error>> {
+    let user = read_username();
+    let password = read_pass()?;
+    let user_id = authenticate_user(connection, &user, &password)?;
+    repl_loop(user_id, connection);
+    Ok(())
+}
+fn read_username() -> String {
+    print!("Enter username: ");
+    std::io::stdout().flush().expect("Failed to flush stdout");
+    let mut username = String::new();
+    std::io::stdin()
+        .read_line(&mut username)
+        .expect("Failed to read line");
+    username.trim().to_string()
+}
+fn read_pass() -> Result<String, Box<dyn Error>> {
+    print!("Enter password: ");
+    std::io::stdout().flush().expect("Failed to flush stdout");
+    let password = read_password()?;
+    Ok(password)
+}
+
+fn authenticate_user(
+    conn: &mut PgConnection,
+    username: &str,
+    password: &str,
+) -> Result<i32, Box<dyn Error>> {
+    crate::control::authenticate_user(conn, username, password)
+}
+
 fn read_command_line(username: &str) -> String {
     print!("{}> ", username);
     std::io::stdout().flush().expect("Failed to flush stdout");

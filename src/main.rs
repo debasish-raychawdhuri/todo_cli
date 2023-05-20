@@ -4,11 +4,12 @@ mod repl;
 mod schema;
 use diesel::prelude::*;
 use dotenvy::dotenv;
-use repl::repl_loop;
+use repl::login;
 use std::env;
 
 fn main() {
-    repl_loop(1, &mut establish_connection());
+    let mut conn = establish_connection();
+    login(&mut conn).unwrap();
 }
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();

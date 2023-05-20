@@ -79,6 +79,24 @@ pub fn get_username_for_user_id(
     Ok(user.username)
 }
 
+pub fn authenticate_user(
+    conn: &mut PgConnection,
+    username: &str,
+    password: &str,
+) -> Result<i32, Box<dyn Error>> {
+    use schema::users;
+
+    let user = users::dsl::users
+        .filter(users::dsl::username.eq(username))
+        .filter(users::dsl::password.eq(password))
+        .first::<User>(conn);
+
+    match user {
+        Ok(user) => Ok(user.id),
+        Err(_) => Err("Invalid username or password".into()),
+    }
+}
+
 pub fn delete_todo(conn: &mut PgConnection, user_id: i32, id: i32) -> Result<(), Box<dyn Error>> {
     use schema::todos;
 
