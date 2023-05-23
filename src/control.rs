@@ -47,10 +47,10 @@ pub fn change_user_password<'a>(
     Ok(())
 }
 
-pub fn create_new_todo<'a>(
+pub fn create_new_todo(
     conn: &mut PgConnection,
     user_id: i32,
-    description: &'a str,
+    description: &str,
 ) -> Result<Todo, Box<dyn Error>> {
     use schema::todos;
 
@@ -110,7 +110,7 @@ pub fn delete_todo(conn: &mut PgConnection, user_id: i32, id: i32) -> Result<(),
     }
 }
 
-pub fn get_all_pending_todos_for_user<'a>(
+pub fn get_all_pending_todos_for_user(
     conn: &mut PgConnection,
     user_id: i32,
 ) -> Result<Vec<crate::models::Todo>, Box<dyn Error>> {
@@ -124,7 +124,7 @@ pub fn get_all_pending_todos_for_user<'a>(
     Ok(results)
 }
 
-pub fn get_all_todos_for_user<'a>(
+pub fn get_all_todos_for_user(
     conn: &mut PgConnection,
     user_id: i32,
 ) -> Result<Vec<crate::models::Todo>, Box<dyn Error>> {
@@ -137,11 +137,11 @@ pub fn get_all_todos_for_user<'a>(
     Ok(results)
 }
 
-pub fn update_todo<'a>(
+pub fn update_todo(
     conn: &mut PgConnection,
     user_id: i32,
     id: i32,
-    description: &'a str,
+    description: &str,
 ) -> Result<(), Box<dyn Error>> {
     use schema::todos;
 
@@ -171,7 +171,7 @@ pub fn search_todo_by_description(
     Ok(results)
 }
 
-pub fn mark_todo_done<'a>(
+pub fn mark_todo_done(
     conn: &mut PgConnection,
     user_id: i32,
     id: i32,

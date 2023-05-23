@@ -33,6 +33,7 @@ impl<'a> Iterator for TokenIterator<'a> {
     type Item = &'a str;
 
     fn next(&mut self) -> Option<Self::Item> {
+        #[allow(clippy::enum_variant_names)]
         enum State {
             InWord,
             InWhitespace,
@@ -243,7 +244,7 @@ pub fn repl_loop(user_id: i32, conn: &mut PgConnection) {
     }
 }
 
-fn read_parse_repl_command<'a>(command: &'a str) -> Result<ReplCommand<'a>, Box<dyn Error>> {
+fn read_parse_repl_command(command: &str) -> Result<ReplCommand, Box<dyn Error>> {
     let mut iter = TokenIterator {
         sentence: command,
         index: 0,
@@ -264,10 +265,7 @@ fn read_parse_repl_command<'a>(command: &'a str) -> Result<ReplCommand<'a>, Box<
         let old_password = read_password()?;
         print!("Enter new password: ");
         let new_password = read_password()?;
-        Ok(ReplCommand::ChangePassword(
-            old_password.to_string(),
-            new_password.to_string(),
-        ))
+        Ok(ReplCommand::ChangePassword(old_password, new_password))
     } else if command == "create-todo" || command == "ct" {
         if args.len() != 1 {
             return Err("create-todo command takes 1 argument".into());
@@ -297,22 +295,22 @@ fn read_parse_repl_command<'a>(command: &'a str) -> Result<ReplCommand<'a>, Box<
         let id = args[0].parse::<i32>()?;
         Ok(ReplCommand::MarkTodoAsDone(id))
     } else if command == "list-all-todos" || command == "lt" {
-        if args.len() != 0 {
+        if !args.is_empty() {
             return Err("list-all-todos command takes 0 argument".into());
         }
         Ok(ReplCommand::ListAllTodos)
     } else if command == "list-all-pending-todos" || command == "lp" {
-        if args.len() != 0 {
+        if !args.is_empty() {
             return Err("list-all-todos command takes 0 argument".into());
         }
         Ok(ReplCommand::ListAllPendingTodos)
     } else if command == "exit" {
-        if args.len() != 0 {
+        if !args.is_empty() {
             return Err("exit command takes 0 argument".into());
         }
         Ok(ReplCommand::Exit)
     } else if command == "help" {
-        if args.len() != 0 {
+        if !args.is_empty() {
             return Err("help command takes 0 argument".into());
         }
         Ok(ReplCommand::Help)
